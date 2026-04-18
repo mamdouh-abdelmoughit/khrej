@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -62,7 +62,7 @@ export default function CreateEventPage() {
               <h2 className="text-lg font-semibold border-b border-border/40 pb-2">1. Informations générales</h2>
               
               <div className="grid gap-2">
-                <Label htmlFor="title">Titre de l'événement <span className="text-destructive">*</span></Label>
+                <Label htmlFor="title">Titre de l&apos;événement <span className="text-destructive">*</span></Label>
                 <Input id="title" name="title" placeholder="Ex: L'Art du Stand Up" required className="h-12 rounded-xl" />
               </div>
 
@@ -84,7 +84,7 @@ export default function CreateEventPage() {
                     <UploadCloudIcon className="w-6 h-6" />
                   </div>
                   <p className="font-medium text-sm mt-2">Cliquez pour uploader une image</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, WebP jusqu'à 5MB</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, WebP jusqu&apos;à 5MB</p>
                   <Input id="cover_image" name="cover_image" type="file" accept="image/*" className="hidden" />
                 </div>
               </div>
@@ -130,7 +130,7 @@ export default function CreateEventPage() {
                 <div className="grid gap-2">
                   <Label htmlFor="ticket_price">Prix du billet (MAD) <span className="text-destructive">*</span></Label>
                   <Input type="number" step="0.01" min="0" id="ticket_price" name="ticket_price" placeholder="Ex: 150.00" required className="h-12 rounded-xl" />
-                  <p className="text-xs text-muted-foreground">La commission de 5% sera payée par l'acheteur, vous toucherez 100% de ce prix.</p>
+                  <p className="text-xs text-muted-foreground">La commission de 5% sera payée par l&apos;acheteur, vous toucherez 100% de ce prix.</p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="ticket_quantity">Quantité de billets <span className="text-destructive">*</span></Label>

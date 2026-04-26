@@ -5,22 +5,30 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 export async function createEventAction(formData: FormData) {
+  console.log("-> Starting createEventAction");
   const supabase = createClient();
+  
+  console.log("-> Calling auth.getUser()");
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("Vous devez être connecté");
+    console.error("Auth Error or no user:", authError);
+    throw new Error("Vous devez etre connecte");
   }
+  console.log("-> User found:", user.id);
 
-  const { data: profile } = await supabase
+  console.log("-> Fetching profile");
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "organizer") {
-    throw new Error("Accès refusé");
+  if (profileError || !profile || profile.role !== "organizer") {
+    console.error("Profile Error or not organizer:", profileError, profile);
+    throw new Error("Acces refuse. Vous devez etre organisateur.");
   }
+  console.log("-> Profile validated as organizer");
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
@@ -34,26 +42,32 @@ export async function createEventAction(formData: FormData) {
   let cover_image_url = "";
 
   if (cover_image && cover_image.size > 0) {
-    const fileExt = cover_image.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-    const filePath = `${user.id}/${fileName}`;
+    console.log("-> Starting cover image upload");
+    const fileName = crypto.randomUUID() + "-" + cover_image.name;
+    const filePath = user.id + "/" + fileName;
 
-    const { error: uploadError } = await supabase.storage
+    console.log("-> Uploading to path:", filePath);
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from("event-covers")
       .upload(filePath, cover_image);
 
     if (uploadError) {
-      console.error(uploadError);
-      throw new Error("Erreur lors de l'upload de l'image.");
+      console.error("Storage upload error details:", uploadError);
+      throw new Error("Erreur lors de l'upload de l'image : " + uploadError.message);
     }
 
+    console.log("-> Upload successful, getting public URL");
     const { data: { publicUrl } } = supabase.storage
       .from("event-covers")
-      .getPublicUrl(filePath);
+      .getPublicUrl(uploadData.path);
 
     cover_image_url = publicUrl;
+    console.log("-> Public URL:", cover_image_url);
+  } else {
+    console.log("-> No cover image provided or size is 0");
   }
 
+  console.log("-> Inserting event into database");
   const { error: insertError } = await supabase.from("events").insert({
     organizer_id: user.id,
     title,
@@ -69,9 +83,10 @@ export async function createEventAction(formData: FormData) {
   });
 
   if (insertError) {
-    console.error(insertError);
-    throw new Error("Erreur lors de la création de l'évènement.");
+    console.error("Database insert error details:", insertError);
+    throw new Error("Erreur lors de la creation de l'evenement : " + insertError.message);
   }
+  console.log("-> Event created successfully");
 
   revalidatePath("/");
   revalidatePath("/organizer/dashboard");

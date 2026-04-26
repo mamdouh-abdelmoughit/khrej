@@ -162,17 +162,3 @@ export default async function OrganizerDashboard() {
     </main>
   );
 }
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {(event.tickets_sold * event.ticket_price).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    </main>
-  );
-}

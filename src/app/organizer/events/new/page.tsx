@@ -16,26 +16,28 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeftIcon, UploadCloudIcon } from "lucide-react";
 import Link from "next/link";
+import { createEventAction } from "./actions";
 
 const CITIES = ["Casablanca", "Rabat", "Marrakech", "Fès", "Tanger", "Agadir", "Autre"];
 
 export default function CreateEventPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Simulate Supabase API Call here
-    // const formData = new FormData(e.currentTarget);
-    // await createEventAction(formData);
-    
-    setTimeout(() => {
+    try {
+      const formData = new FormData(e.currentTarget);
+      await createEventAction(formData);
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue");
+    } finally {
       setIsLoading(false);
-      // Toast notification would go here
-      router.push("/organizer/dashboard");
-    }, 1500);
+    }
   }
 
   return (
@@ -108,6 +110,53 @@ export default function CreateEventPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="venue_city">Ville <span className="text-destructive">*</span></Label>
+                  <Select name="venue_city" required>
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Sélectionnez une ville" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CITIES.map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Billets */}
+            <div className="flex flex-col gap-6">
+              <h2 className="text-lg font-semibold border-b border-border/40 pb-2">3. Billets</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="ticket_price">Prix du billet (MAD) <span className="text-destructive">*</span></Label>
+                  <Input type="number" id="ticket_price" name="ticket_price" placeholder="Ex: 150" required min="0" step="0.01" className="h-12 rounded-xl" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="ticket_quantity">Quantité de billets <span className="text-destructive">*</span></Label>
+                  <Input type="number" id="ticket_quantity" name="ticket_quantity" placeholder="Ex: 200" required min="1" className="h-12 rounded-xl" />
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive font-medium bg-destructive/10 p-3 rounded-lg border border-destructive/20 text-center">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" disabled={isLoading} className="mt-4 h-14 rounded-xl font-bold text-lg">
+              {isLoading ? "Création en cours..." : "Publier l'événement"}
+            </Button>
+          </CardContent>
+        </Card>
+      </form>
+    </main>
+  );
+}
                   <Select name="venue_city" required>
                     <SelectTrigger className="h-12 rounded-xl">
                       <SelectValue placeholder="Sélectionner une ville" />

@@ -6,28 +6,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CalendarIcon, MapPinIcon, TicketIcon, InfoIcon } from "lucide-react";
 import Link from "next/link";
-
-// In the future, this will be fetched from Supabase using the event ID
-async function getEvent(id: string) {
-  // Mock data for now to visualize the page layout
-  return {
-    id,
-    title: "L'Art du Stand Up - Soirée Rires",
-    description: "Découvrez les meilleurs talents de la scène humoristique marocaine dans une soirée inoubliable ! Plus de 2 heures de rires non-stop avec des têtes d'affiche et des nouvelles révélations.",
-    cover_image_url: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?q=80&w=2070&auto=format&fit=crop",
-    venue_name: "Théâtre Mohammed V",
-    venue_city: "Rabat",
-    event_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-    ticket_price: 150,
-    ticket_quantity: 200,
-    tickets_sold: 147,
-  };
-}
+import { createClient } from "@/utils/supabase/server";
 
 export default async function EventDetailPage({ params }: { params: { id: string } }) {
-  const event = await getEvent(params.id);
+  const supabase = createClient();
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", params.id)
+    .single();
 
-  if (!event) {
+  if (!event || error) {
     notFound();
   }
 
@@ -121,7 +110,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
                     <Link href={`/checkout/${event.id}`} className="w-full block">
                       <Button className="w-full rounded-xl h-14 text-lg font-bold shadow-md hover:shadow-lg transition-all">
                         <TicketIcon className="w-5 h-5 mr-2" />
-                        Acheter mon ticket
+                        Acheter mon ticket — {totalPrice.toFixed(2)} MAD
                       </Button>
                     </Link>
                   )}

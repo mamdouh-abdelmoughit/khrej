@@ -13,37 +13,47 @@ import { Badge } from "@/components/ui/badge";
 import { PlusIcon, TicketIcon, UsersIcon, BanknoteIcon } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { createClient } from "@/utils/supabase/server";
+import { protectOrganizerRoute } from "@/lib/auth";
 
-// Mock data (will be fetched from Supabase)
-async function getOrganizerDashboardData() {
+async function getOrganizerDashboardData(userId: string) {
+  const supabase = createClient();
+  
+  const { data: events, error } = await supabase
+    .from("events")
+    .select("id, title, event_date, tickets_sold, ticket_quantity, ticket_price, status")
+    .eq("organizer_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !events) {
+    return {
+      totalRevenue: 0,
+      totalTicketsSold: 0,
+      events: []
+    }
+  }
+
+  // Ideally, revenue should come from orders.total_paid.
+  // Since we fetch by organizer_id, let's just make a subquery or calculate here.
+  let totalRevenue = 0;
+  for(const ev of events){
+    // Mocking revenue as tickets_sold * ticket_price instead of a separate query to keep it fast MVP
+    // We can also fetch the orders if strict accuracy is required.
+    totalRevenue += (ev.tickets_sold * ev.ticket_price);
+  }
+
+  const totalTicketsSold = events.reduce((acc, ev) => acc + ev.tickets_sold, 0);
+
   return {
-    totalRevenue: 24500.50,
-    totalTicketsSold: 345,
-    events: [
-      {
-        id: "1",
-        title: "L'Art du Stand Up",
-        event_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-        tickets_sold: 147,
-        ticket_quantity: 200,
-        ticket_price: 150,
-        status: "published",
-      },
-      {
-        id: "2",
-        title: "Festival de Musique Gnaoua",
-        event_date: new Date(new Date().setMonth(new Date().getMonth() + 2)).toISOString(),
-        tickets_sold: 198,
-        ticket_quantity: 500,
-        ticket_price: 250,
-        status: "draft",
-      }
-    ]
+    totalRevenue,
+    totalTicketsSold,
+    events
   };
 }
 
 export default async function OrganizerDashboard() {
-  const data = await getOrganizerDashboardData();
+  const user = await protectOrganizerRoute();
+  const data = await getOrganizerDashboardData(user.id);
 
   return (
     <main className="container mx-auto px-4 max-w-screen-xl py-12 flex flex-col gap-8">
@@ -131,13 +141,27 @@ export default async function OrganizerDashboard() {
                     </TableCell>
                     <TableCell>
                       {event.status === "published" ? (
-                        <Badge variant="default" className="bg-green-500/10 text-green-700 hover:bg-green-500/20 border-green-200">Publié</Badge>
+                        <Badge variant="default" className="bg-green-500/10 text-green-700 hover:bg-green-500/20 border-green-200 shadow-none">Publié</Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-muted-foreground bg-muted">Brouillon</Badge>
+                        <Badge variant="secondary" className="text-muted-foreground bg-muted shadow-none">Brouillon</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       {event.tickets_sold} / {event.ticket_quantity}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {(event.tickets_sold * event.ticket_price).toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </main>
+  );
+}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {(event.tickets_sold * event.ticket_price).toFixed(2)}

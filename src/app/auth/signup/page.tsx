@@ -10,14 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { CheckCircle2Icon, Loader2Icon } from "lucide-react";
 import Link from "next/link";
 
-type SignupRole = "visitor" | "organizer";
-
 export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [role, setRole] = useState<SignupRole | null>(null);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,17 +23,11 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!role) {
-      setError("Choisissez d'abord votre type de compte.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setSuccess(null);
 
-    const redirectPath = role === "organizer" ? "/organizer/register" : "/";
-    const emailRedirectTo = `${window.location.origin}${redirectPath}`;
+    const emailRedirectTo = `${window.location.origin}/`;
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -45,9 +35,8 @@ export default function SignupPage() {
       options: {
         emailRedirectTo,
         data: {
-          first_name: firstName,
-          last_name: lastName,
-          role,
+          full_name: fullName,
+          role: "visitor",
         },
       },
     });
@@ -69,70 +58,22 @@ export default function SignupPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-3xl font-bold tracking-tight text-center">Inscription</CardTitle>
           <CardDescription className="text-center">
-            Crée ton compte Khrej pour réjoindre nos événements
+            Crée ton compte visiteur pour réserver des tickets
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-6">
-            <button
-              type="button"
-              onClick={() => setRole("visitor")}
-              className={`rounded-xl border p-5 text-left transition-colors ${
-                role === "visitor"
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-background hover:border-primary/60"
-              }`}
-            >
-              <p className="text-base font-semibold">Je veux assister à des événements</p>
-              <p className="text-sm text-muted-foreground mt-2">Compte visiteur</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setRole("organizer")}
-              className={`rounded-xl border p-5 text-left transition-colors ${
-                role === "organizer"
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-background hover:border-primary/60"
-              }`}
-            >
-              <p className="text-base font-semibold">Je veux vendre des tickets</p>
-              <p className="text-sm text-muted-foreground mt-2">Compte organisateur</p>
-            </button>
-          </div>
-
-          {!role && (
-            <p className="text-sm text-muted-foreground text-center mb-2">
-              Sélectionnez un rôle pour continuer.
-            </p>
-          )}
-
-          {role && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom</Label>
-                <Input
-                  id="firstName"
-                  type="text"
-                  placeholder="Adam"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Nom</Label>
-                <Input
-                  id="lastName"
-                  type="text"
-                  placeholder="El Fassi"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Nom complet</Label>
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="Adam El Fassi"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
@@ -181,7 +122,6 @@ export default function SignupPage() {
               )}
             </Button>
           </form>
-          )}
         </CardContent>
         <CardFooter className="flex flex-col items-center border-t border-border/50 pt-6">
           <span className="text-sm text-muted-foreground">

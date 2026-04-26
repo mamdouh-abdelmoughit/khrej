@@ -53,6 +53,15 @@ async function getOrganizerDashboardData(userId: string) {
 
 export default async function OrganizerDashboard() {
   const user = await protectOrganizerRoute();
+  const supabase = createClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_verified")
+    .eq("id", user.id)
+    .single();
+
+  const isVerified = Boolean(profile?.is_verified);
   const data = await getOrganizerDashboardData(user.id);
 
   return (
@@ -63,13 +72,25 @@ export default async function OrganizerDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
           <p className="text-muted-foreground">Bienvenue, voici un résumé de vos événements actuels.</p>
         </div>
-        <Link href="/organizer/events/new">
-          <Button className="rounded-xl h-12 px-6 shadow-md transition-all">
-            <PlusIcon className="w-5 h-5 mr-2" />
-            Créer un événement
-          </Button>
-        </Link>
+        {isVerified ? (
+          <Link href="/organizer/events/new">
+            <Button className="rounded-xl h-12 px-6 shadow-md transition-all">
+              <PlusIcon className="w-5 h-5 mr-2" />
+              Créer un événement
+            </Button>
+          </Link>
+        ) : (
+          <Badge variant="secondary" className="text-amber-800 bg-amber-100 border border-amber-200 shadow-none px-4 py-2">
+            Compte en cours de vérification ⏳
+          </Badge>
+        )}
       </div>
+
+      {!isVerified && (
+        <div className="rounded-xl border border-amber-300/40 bg-amber-50 px-4 py-3 text-amber-900">
+          Votre compte est en cours de vérification — vous recevrez un email sous 24h
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -2,11 +2,16 @@
 create table public.profiles (
   id uuid not null references auth.users on delete cascade,
   full_name text,
+  organization_name text,
   phone text,
   role text, -- 'visitor' or 'organizer'
+  is_verified boolean default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   primary key (id)
 );
+
+alter table public.profiles add column if not exists organization_name text;
+alter table public.profiles add column if not exists is_verified boolean default false;
 
 -- Enable RLS and add basic policies for profiles
 alter table public.profiles enable row level security;
@@ -21,16 +26,37 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  metadata_role text;
+  metadata_full_name text;
+  metadata_is_verified boolean;
 begin
-  insert into public.profiles (id, full_name, role)
+  metadata_role := coalesce(new.raw_user_meta_data->>'role', 'visitor');
+  metadata_full_name := coalesce(
+    new.raw_user_meta_data->>'full_name',
+    nullif(trim(coalesce(new.raw_user_meta_data->>'first_name', '') || ' ' || coalesce(new.raw_user_meta_data->>'last_name', '')), '')
+  );
+
+  metadata_is_verified := case
+    when metadata_role = 'organizer' then false
+    else true
+  end;
+
+  insert into public.profiles (id, full_name, organization_name, phone, role, is_verified)
   values (
     new.id,
-    nullif(trim(coalesce(new.raw_user_meta_data->>'first_name', '') || ' ' || coalesce(new.raw_user_meta_data->>'last_name', '')), ''),
-    coalesce(new.raw_user_meta_data->>'role', 'visitor')
+    metadata_full_name,
+    nullif(new.raw_user_meta_data->>'organization_name', ''),
+    nullif(new.raw_user_meta_data->>'phone', ''),
+    metadata_role,
+    metadata_is_verified
   )
   on conflict (id) do update set
     full_name = excluded.full_name,
-    role = excluded.role;
+    organization_name = excluded.organization_name,
+    phone = excluded.phone,
+    role = excluded.role,
+    is_verified = excluded.is_verified;
 
   return new;
 end;

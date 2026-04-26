@@ -23,18 +23,46 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      setError(error.message);
+    if (signInError) {
+      setError(signInError.message);
       setLoading(false);
       return;
     }
 
-    router.push("/");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setError("Impossible de récupérer votre session.");
+      setLoading(false);
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError && profileError.code !== "PGRST116") {
+      setError(profileError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (profile?.role === "organizer") {
+      router.push("/organizer/dashboard");
+    } else {
+      router.push("/");
+    }
+
     router.refresh();
   };
 

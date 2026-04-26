@@ -22,13 +22,18 @@ export async function createEventAction(formData: FormData) {
   console.log("[createEventAction] checking profile role for organizer");
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_verified")
     .eq("id", organizerId)
     .single();
 
   if (profileError || !profile || profile.role !== "organizer") {
     console.error("[createEventAction] organizer role check failed", { profileError, profile, organizerId });
     throw new Error("Acces refuse. Vous devez etre organisateur.");
+  }
+
+  if (!profile.is_verified) {
+    console.error("[createEventAction] organizer account not verified", { organizerId, profile });
+    throw new Error("Compte en cours de verification. Merci de patienter jusqu'a validation.");
   }
   console.log("[createEventAction] profile validated as organizer");
 

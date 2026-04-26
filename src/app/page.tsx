@@ -1,11 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/server";
 import { EventList } from "@/components/EventList";
 
 export default async function Home() {
   const supabase = createClient();
-  const { data: events, error } = await supabase
+  const { data: events } = await supabase
     .from("events")
     .select("*")
     .eq("status", "published")

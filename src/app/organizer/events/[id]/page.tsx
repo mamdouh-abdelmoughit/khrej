@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeftIcon, TicketIcon, UsersIcon } from "lucide-react";
@@ -22,7 +22,7 @@ async function getEventDetails(userId: string, eventId: string) {
     return null;
   }
 
-  const { data: attendees, error: attendeesError } = await supabase
+  const { data: attendees } = await supabase
     .from("orders")
     .select("id, buyer_name, buyer_email, buyer_phone, status, qr_code")
     .eq("event_id", eventId)
@@ -108,14 +108,16 @@ export default async function OrganizerEventDetails({ params }: { params: { id: 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {event.attendees.map((attendee: any) => (
-                <TableRow key={attendee.id}>
-                  <TableCell className="font-medium">{attendee.buyer_name}</TableCell>
-                  <TableCell>{attendee.buyer_email}</TableCell>
-                  <TableCell>{attendee.buyer_phone || "N/A"}</TableCell>
-                  <TableCell className="text-xs font-mono text-muted-foreground">{attendee.qr_code.substring(0, 8)}...</TableCell>
+              {event.attendees.map((attendee: unknown) => {
+                const a = attendee as { id: string; buyer_name: string; buyer_email: string; buyer_phone: string; qr_code: string; status: string };
+                return (
+                <TableRow key={a.id}>
+                  <TableCell className="font-medium">{a.buyer_name}</TableCell>
+                  <TableCell>{a.buyer_email}</TableCell>
+                  <TableCell>{a.buyer_phone || "N/A"}</TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">{a.qr_code.substring(0, 8)}...</TableCell>
                   <TableCell className="text-right">
-                    {attendee.status === "scanned" ? (
+                    {a.status === "scanned" ? (
                       <Badge variant="destructive" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 shadow-none border-green-200">
                         Scanné
                       </Badge>
@@ -126,7 +128,8 @@ export default async function OrganizerEventDetails({ params }: { params: { id: 
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
               {event.attendees.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">

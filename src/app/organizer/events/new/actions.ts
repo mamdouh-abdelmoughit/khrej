@@ -5,31 +5,34 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 export async function createEventAction(formData: FormData) {
-  console.log("-> Starting createEventAction");
+  console.log("[createEventAction] start");
   const supabase = createClient();
-  
-  console.log("-> Calling auth.getUser()");
+
+  console.log("[createEventAction] fetching auth user");
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    console.error("Auth Error or no user:", authError);
+    console.error("[createEventAction] auth lookup failed", { authError, user });
     throw new Error("Vous devez etre connecte");
   }
-  console.log("-> User found:", user.id);
 
-  console.log("-> Fetching profile");
+  const organizerId = user.id;
+  console.log("[createEventAction] auth user found", { organizerId });
+
+  console.log("[createEventAction] checking profile role for organizer");
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", user.id)
+    .eq("id", organizerId)
     .single();
 
   if (profileError || !profile || profile.role !== "organizer") {
-    console.error("Profile Error or not organizer:", profileError, profile);
+    console.error("[createEventAction] organizer role check failed", { profileError, profile, organizerId });
     throw new Error("Acces refuse. Vous devez etre organisateur.");
   }
-  console.log("-> Profile validated as organizer");
+  console.log("[createEventAction] profile validated as organizer");
 
+  console.log("[createEventAction] parsing form data");
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const venue_name = formData.get("venue_name") as string;
@@ -42,34 +45,62 @@ export async function createEventAction(formData: FormData) {
   let cover_image_url = "";
 
   if (cover_image && cover_image.size > 0) {
-    console.log("-> Starting cover image upload");
-    const fileName = crypto.randomUUID() + "-" + cover_image.name;
-    const filePath = user.id + "/" + fileName;
+    console.log("[createEventAction] checking storage bucket", { bucket: "event-covers" });
+    const { data: bucket, error: bucketError } = await supabase.storage.getBucket("event-covers");
 
-    console.log("-> Uploading to path:", filePath);
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    if (bucketError || !bucket) {
+      console.error("[createEventAction] bucket lookup failed", { bucketError, bucket });
+      throw new Error("Bucket 'event-covers' introuvable. Créez-le dans Supabase Storage.");
+    }
+
+    if (!bucket.public) {
+      console.error("[createEventAction] bucket is not public", { bucket });
+      throw new Error("Le bucket 'event-covers' doit être public pour exposer les images.");
+    }
+
+    const uploadPath = `${crypto.randomUUID()}-${cover_image.name}`;
+    console.log("[createEventAction] uploading cover image", {
+      uploadPath,
+      fileType: cover_image.type,
+      fileSize: cover_image.size,
+    });
+
+    const { error: uploadError } = await supabase.storage
       .from("event-covers")
-      .upload(filePath, cover_image);
+      .upload(uploadPath, cover_image);
 
     if (uploadError) {
-      console.error("Storage upload error details:", uploadError);
+      console.error("[createEventAction] storage upload failed", {
+        uploadError,
+        uploadPath,
+        message: uploadError.message,
+        name: uploadError.name,
+      });
       throw new Error("Erreur lors de l'upload de l'image : " + uploadError.message);
     }
 
-    console.log("-> Upload successful, getting public URL");
+    console.log("[createEventAction] upload succeeded, generating public URL", { uploadPath });
     const { data: { publicUrl } } = supabase.storage
       .from("event-covers")
-      .getPublicUrl(uploadData.path);
+      .getPublicUrl(uploadPath);
 
     cover_image_url = publicUrl;
-    console.log("-> Public URL:", cover_image_url);
+    console.log("[createEventAction] cover image URL ready", { cover_image_url });
   } else {
-    console.log("-> No cover image provided or size is 0");
+    console.log("[createEventAction] no cover image provided or empty file");
   }
 
-  console.log("-> Inserting event into database");
+  console.log("[createEventAction] inserting event", {
+    organizerId,
+    title,
+    venue_city,
+    event_date,
+    ticket_price,
+    ticket_quantity,
+    hasCoverImage: Boolean(cover_image_url),
+  });
   const { error: insertError } = await supabase.from("events").insert({
-    organizer_id: user.id,
+    organizer_id: organizerId,
     title,
     description,
     venue_name,
@@ -83,12 +114,14 @@ export async function createEventAction(formData: FormData) {
   });
 
   if (insertError) {
-    console.error("Database insert error details:", insertError);
+    console.error("[createEventAction] database insert failed", { insertError, organizerId });
     throw new Error("Erreur lors de la creation de l'evenement : " + insertError.message);
   }
-  console.log("-> Event created successfully");
+  console.log("[createEventAction] event created successfully");
 
+  console.log("[createEventAction] revalidating caches");
   revalidatePath("/");
   revalidatePath("/organizer/dashboard");
+  console.log("[createEventAction] redirecting to organizer dashboard");
   redirect("/organizer/dashboard");
 }

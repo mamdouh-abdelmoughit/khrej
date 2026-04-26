@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeftIcon, UploadCloudIcon } from "lucide-react";
+import { AlertCircleIcon, ArrowLeftIcon, Loader2Icon, UploadCloudIcon } from "lucide-react";
 import Link from "next/link";
 import { createEventAction } from "./actions";
 
@@ -22,21 +22,38 @@ const CITIES = ["Casablanca", "Rabat", "Marrakech", "Fès", "Tanger", "Agadir", 
 export default function CreateEventPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setToastMessage(null);
     
     try {
       const formData = new FormData(e.currentTarget);
       await createEventAction(formData);
     } catch (err: unknown) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "digest" in err &&
+        typeof (err as { digest?: unknown }).digest === "string" &&
+        (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+      ) {
+        throw err;
+      }
+
       if (err instanceof Error) {
         setError(err.message);
+        setToastMessage(err.message);
       } else {
-        setError("Une erreur est survenue");
+        const fallbackMessage = "Une erreur est survenue";
+        setError(fallbackMessage);
+        setToastMessage(fallbackMessage);
       }
+
+      setTimeout(() => setToastMessage(null), 4500);
     } finally {
       setIsLoading(false);
     }
@@ -56,6 +73,16 @@ export default function CreateEventPage() {
           <p className="text-muted-foreground text-sm">Créez votre événement et commencez à vendre des billets.</p>
         </div>
       </div>
+
+      {toastMessage && (
+        <div className="fixed right-4 top-4 z-50 max-w-sm rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg">
+          <p className="font-semibold flex items-center gap-2">
+            <AlertCircleIcon className="h-4 w-4" />
+            Échec de la création
+          </p>
+          <p className="mt-1 break-words">{toastMessage}</p>
+        </div>
+      )}
 
       <form onSubmit={onSubmit}>
         <Card className="rounded-2xl border-border/50 overflow-hidden shadow-sm">
@@ -83,14 +110,14 @@ export default function CreateEventPage() {
 
               <div className="grid gap-2">
                 <Label>Image de couverture <span className="text-destructive">*</span></Label>
-                <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-muted/20 hover:bg-muted/50 transition-colors cursor-pointer text-center">
+                <label htmlFor="cover_image" className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center gap-2 bg-muted/20 hover:bg-muted/50 transition-colors cursor-pointer text-center">
                   <div className="p-3 bg-primary/10 rounded-full text-primary">
                     <UploadCloudIcon className="w-6 h-6" />
                   </div>
                   <p className="font-medium text-sm mt-2">Cliquez pour uploader une image</p>
                   <p className="text-xs text-muted-foreground">PNG, JPG, WebP jusqu&apos;à 5MB</p>
                   <Input id="cover_image" name="cover_image" type="file" accept="image/*" className="hidden" />
-                </div>
+                </label>
               </div>
             </div>
 
@@ -151,7 +178,14 @@ export default function CreateEventPage() {
             )}
 
             <Button type="submit" disabled={isLoading} className="mt-4 h-14 rounded-xl font-bold text-lg">
-              {isLoading ? "Création en cours..." : "Publier l'événement"}
+              {isLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2Icon className="h-5 w-5 animate-spin" />
+                  Création en cours...
+                </span>
+              ) : (
+                "Publier l'événement"
+              )}
             </Button>
           </CardContent>
         </Card>

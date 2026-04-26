@@ -14,6 +14,34 @@ create policy "Public profiles are viewable by everyone." on public.profiles for
 create policy "Users can insert their own profile." on public.profiles for insert with check (auth.uid() = id);
 create policy "Users can update own profile." on public.profiles for update using (auth.uid() = id);
 
+-- Auto-create profile row from signup metadata (role/first/last name)
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, full_name, role)
+  values (
+    new.id,
+    nullif(trim(coalesce(new.raw_user_meta_data->>'first_name', '') || ' ' || coalesce(new.raw_user_meta_data->>'last_name', '')), ''),
+    coalesce(new.raw_user_meta_data->>'role', 'visitor')
+  )
+  on conflict (id) do update set
+    full_name = excluded.full_name,
+    role = excluded.role;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row
+execute function public.handle_new_user();
+
 -- Create the Events table
 create table public.events (
   id uuid not null default gen_random_uuid(),
@@ -35,7 +63,11 @@ create table public.events (
 -- Enable RLS and add basic policies for events
 alter table public.events enable row level security;
 create policy "Published events are viewable by everyone." on public.events for select using (status = 'published' or auth.uid() = organizer_id);
-create policy "Organizers can create events." on public.events for insert with check (auth.uid() = organizer_id);
+
+drop policy if exists "Organizers can create events" on public.events;
+drop policy if exists "Organizers can create events." on public.events;
+create policy "Organizers can create events" on public.events for insert with check (auth.uid() = organizer_id);
+
 create policy "Organizers can update own events." on public.events for update using (auth.uid() = organizer_id);
 
 -- Create the Orders table
@@ -67,4 +99,7 @@ create policy "Organizers can view orders for their events." on public.orders fo
 );
 
 -- Optional: Supabase Storage bucket for event covers (requires running in Storage console)
-insert into storage.buckets (id, name, public) values ('event-covers', 'event-covers', true);
+insert into storage.buckets (id, name, public)
+values ('event-covers', 'event-covers', true)
+on conflict (id) do update
+set public = excluded.public;

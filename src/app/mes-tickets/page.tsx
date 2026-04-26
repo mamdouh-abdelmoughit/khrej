@@ -43,7 +43,7 @@ export default async function MyTicketsPage() {
         ) : (
           <Card className="rounded-xl border-dashed border-border/70">
             <CardContent className="py-10 text-center">
-              <p className="text-muted-foreground">Vous n'avez pas encore de tickets.</p>
+              <p className="text-muted-foreground">Vous n&apos;avez pas encore de tickets.</p>
               <Link href="/" className="inline-block mt-4">
                 <Button>Explorer les événements</Button>
               </Link>

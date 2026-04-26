@@ -90,8 +90,8 @@ export default function CreateEventForm() {
               <h2 className="text-lg font-semibold border-b border-border/40 pb-2">1. Informations générales</h2>
 
               <div className="grid gap-2">
-                <Label htmlFor="title">Titre de l'événement <span className="text-destructive">*</span></Label>
-                <Input id="title" name="title" placeholder="Ex: L'Art du Stand Up" required className="h-12 rounded-xl" />
+                <Label htmlFor="title">Titre de l&apos;événement <span className="text-destructive">*</span></Label>
+                <Input id="title" name="title" placeholder="Ex: L&apos;Art du Stand Up" required className="h-12 rounded-xl" />
               </div>
 
               <div className="grid gap-2">
@@ -112,7 +112,7 @@ export default function CreateEventForm() {
                     <UploadCloudIcon className="w-6 h-6" />
                   </div>
                   <p className="font-medium text-sm mt-2">Cliquez pour uploader une image</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, WebP jusqu'à 5MB</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, WebP jusqu&apos;à 5MB</p>
                   <Input id="cover_image" name="cover_image" type="file" accept="image/*" className="hidden" />
                 </label>
               </div>
@@ -179,7 +179,7 @@ export default function CreateEventForm() {
                   Création en cours...
                 </span>
               ) : (
-                "Publier l'événement"
+                "Publier l&apos;événement"
               )}
             </Button>
           </CardContent>

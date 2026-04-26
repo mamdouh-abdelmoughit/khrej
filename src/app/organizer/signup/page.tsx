@@ -131,7 +131,7 @@ export default function OrganizerSignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="organizationName">Nom de l'organisation</Label>
+              <Label htmlFor="organizationName">Nom de l&apos;organisation</Label>
               <Input
                 id="organizationName"
                 type="text"

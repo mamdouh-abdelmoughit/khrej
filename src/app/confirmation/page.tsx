@@ -4,9 +4,8 @@ import { CheckCircle2Icon, TicketIcon, DownloadIcon, FileTextIcon } from "lucide
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 
-export default async function ConfirmationPage({ searchParams }: { searchParams: { orderId: string, eventId: string } }) {
+export default async function ConfirmationPage({ searchParams }: { searchParams: { orderId: string } }) {
   const orderId = searchParams.orderId || "";
-  const eventId = searchParams.eventId || "";
   const supabase = createClient();
   
   let orderData = null;
@@ -33,13 +32,13 @@ export default async function ConfirmationPage({ searchParams }: { searchParams:
       <main className="container mx-auto px-4 max-w-screen-md py-16 flex flex-col items-center gap-8 text-center">
         <h1 className="text-3xl font-bold">Commande non trouvée</h1>
         <Link href="/">
-          <Button variant="outline">Retour à l'accueil</Button>
+          <Button variant="outline">Retour à l&apos;accueil</Button>
         </Link>
       </main>
     );
   }
 
-  const { events: event } = orderData as any;
+  const { events: event } = orderData as { events: { title: string, event_date: string, venue_name: string, venue_city: string } };
 
   return (
     <main className="container mx-auto px-4 max-w-screen-md py-16 md:py-24 flex flex-col items-center gap-8 text-center">

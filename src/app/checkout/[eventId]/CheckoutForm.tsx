@@ -10,7 +10,7 @@ import { ArrowLeftIcon, Loader2Icon } from "lucide-react";
 import Link from "next/link";
 import { processCheckoutAction } from "./actions";
 
-export default function CheckoutForm({ event, platformFee, totalPrice }: { event: any, platformFee: number, totalPrice: number }) {
+export default function CheckoutForm({ event, platformFee, totalPrice }: { event: { id: string, title: string, ticket_price: number }, platformFee: number, totalPrice: number }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +26,12 @@ export default function CheckoutForm({ event, platformFee, totalPrice }: { event
       if (res.success) {
         router.push(`/confirmation?orderId=${res.orderId}&eventId=${event.id}`);
       }
-    } catch (err: any) {
-      setError(err.message || "Une erreur est survenue");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Une erreur est survenue");
+      }
       setLoading(false);
     }
   };
